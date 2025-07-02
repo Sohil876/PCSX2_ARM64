@@ -7,6 +7,7 @@ if(CMAKE_PROJECT_NAME STREQUAL "chdr")
 endif()
 option(INSTALL_STATIC_LIBS "Install static libraries" OFF)
 option(WITH_SYSTEM_ZLIB "Use system provided zlib library" OFF)
+option(WITH_SYSTEM_LZMA "Use system provided lzma library" OFF) # PATCH: add this line!
 option(WITH_SYSTEM_ZSTD "Use system provided zstd library" OFF)
 
 option(BUILD_LTO "Compile libchdr with link-time optimization if supported" OFF)
@@ -32,13 +33,17 @@ include(GNUInstallDirs)
 # dependencies
 #--------------------------------------------------
 
-
 # lzma
-if(NOT TARGET lzma)
-  add_subdirectory(deps/lzma-24.05 EXCLUDE_FROM_ALL)
+if (WITH_SYSTEM_LZMA)
+  find_package(LZMA REQUIRED)
+  list(APPEND PLATFORM_LIBS LZMA::LZMA)
+else()
+  if(NOT TARGET lzma)
+    add_subdirectory(deps/lzma-24.05 EXCLUDE_FROM_ALL)
+  endif()
+  list(APPEND CHDR_LIBS lzma)
+  list(APPEND CHDR_INCLUDES lzma)
 endif()
-list(APPEND CHDR_LIBS lzma)
-list(APPEND CHDR_INCLUDES lzma)
 
 # zlib
 if (WITH_SYSTEM_ZLIB)
@@ -70,6 +75,7 @@ else()
   endif()
   list(APPEND CHDR_LIBS libzstd_static)
 endif()
+
 #--------------------------------------------------
 # chdr
 #--------------------------------------------------
