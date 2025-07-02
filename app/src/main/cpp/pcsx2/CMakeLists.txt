@@ -1210,6 +1210,7 @@ elseif(ANDROID)
 	find_library(log-lib log)
 	target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
 	target_link_libraries(PCSX2_FLAGS INTERFACE
+                libchdr
 		shaderc
 		oboe
 		android
