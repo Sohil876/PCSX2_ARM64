@@ -1207,15 +1207,18 @@ if(WIN32)
 		OneCore.lib
 	)
 elseif(ANDROID)
-	find_library(log-lib log)
-	target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
-	target_link_libraries(PCSX2_FLAGS INTERFACE
-                libchdr
-		shaderc
-		oboe
-		android
-		${log-lib}
-	)
+    find_library(log-lib log)
+    target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
+    target_link_libraries(PCSX2_FLAGS INTERFACE
+        libchdr
+        ZLIB::ZLIB     # Link zlib if required by libchdr or other deps
+        LZMA::LZMA     # Link lzma if required by libchdr or other deps
+        Zstd::Zstd     # Link zstd if required by libchdr or other deps
+        shaderc
+        oboe
+        android
+        ${log-lib}
+    )
 else()
 	target_link_libraries(PCSX2_FLAGS INTERFACE
 		PCAP::PCAP
