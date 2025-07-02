@@ -1161,7 +1161,7 @@ target_link_libraries(PCSX2_FLAGS INTERFACE
 	imgui
 	fmt::fmt
 	rapidyaml::rapidyaml
-	libchdr
+	chdr-static
 	libzip::zip
 	cpuinfo
 	cubeb
