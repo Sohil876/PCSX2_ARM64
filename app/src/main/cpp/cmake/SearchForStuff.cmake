@@ -36,10 +36,8 @@ if (WIN32)
 elseif (ANDROID)
 	add_subdirectory(3rdparty/zlib EXCLUDE_FROM_ALL)
 	add_subdirectory(3rdparty/zstd EXCLUDE_FROM_ALL)
-	add_subdirectory(3rdparty/lzma EXCLUDE_FROM_ALL)       # <-- add this line!
 	add_subdirectory(3rdparty/lz4 EXCLUDE_FROM_ALL)
 	add_subdirectory(3rdparty/libwebp EXCLUDE_FROM_ALL)
-	add_subdirectory(3rdparty/libchdr EXCLUDE_FROM_ALL)    # <-- and this line!
 	add_subdirectory(3rdparty/SDL3 EXCLUDE_FROM_ALL)
 	add_subdirectory(3rdparty/harfbuzz EXCLUDE_FROM_ALL)
 	add_subdirectory(3rdparty/freetype EXCLUDE_FROM_ALL)
