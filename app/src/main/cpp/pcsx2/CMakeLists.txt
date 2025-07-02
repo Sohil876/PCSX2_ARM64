@@ -1236,6 +1236,7 @@ if(ANDROID)
 		"${CMAKE_SOURCE_DIR}/3rdparty/libjpeg"
 		"${CMAKE_SOURCE_DIR}/3rdparty/shaderc/include"
 		"${CMAKE_SOURCE_DIR}/3rdparty/ffmpeg/include"
+                "${CMAKE_SOURCE_DIR}/3rdparty/libchdr/include"
 	)
 else()
 	target_include_directories(PCSX2_FLAGS INTERFACE
