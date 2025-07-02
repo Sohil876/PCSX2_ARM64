@@ -46,6 +46,17 @@ write_svnrev_h()
 add_subdirectory(common)
 
 # make pcsx2
+add_subdirectory(3rdparty/zlib)
+add_library(ZLIB::ZLIB ALIAS zlib)
+
+add_subdirectory(3rdparty/lzma)
+add_library(LZMA::LZMA ALIAS lzma)
+
+add_subdirectory(3rdparty/zstd)
+add_library(Zstd::Zstd ALIAS zstd)
+
+add_subdirectory(3rdparty/libchdr)
+
 add_subdirectory(pcsx2)
 #add_subdirectory(pcsx2-qt)
 
