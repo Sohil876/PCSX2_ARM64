@@ -1206,18 +1206,7 @@ if(WIN32)
 		dwmapi.lib
 		OneCore.lib
 	)
-elseif(ANDROID)
-    add_subdirectory(../3rdparty/zlib)
-    add_library(ZLIB::ZLIB ALIAS zlib)
-
-    add_subdirectory(../3rdparty/lzma)
-    add_library(LZMA::LZMA ALIAS lzma)
-
-    add_subdirectory(../3rdparty/zstd)
-    add_library(Zstd::Zstd ALIAS zstd)
-
-    add_subdirectory(../3rdparty/libchdr)
-
+elseif(ANDROID)   
     find_library(log-lib log)
     target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
     target_link_libraries(PCSX2_FLAGS INTERFACE
