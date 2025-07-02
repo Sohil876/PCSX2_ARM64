@@ -1207,13 +1207,24 @@ if(WIN32)
 		OneCore.lib
 	)
 elseif(ANDROID)
+    add_subdirectory(3rdparty/zlib)
+    add_library(ZLIB::ZLIB ALIAS zlib)
+
+    add_subdirectory(3rdparty/lzma)
+    add_library(LZMA::LZMA ALIAS lzma)
+
+    add_subdirectory(3rdparty/zstd)
+    add_library(Zstd::Zstd ALIAS zstd)
+
+    add_subdirectory(3rdparty/libchdr)
+
     find_library(log-lib log)
     target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
     target_link_libraries(PCSX2_FLAGS INTERFACE
         libchdr
-        ZLIB::ZLIB     # Link zlib if required by libchdr or other deps
-        LZMA::LZMA     # Link lzma if required by libchdr or other deps
-        Zstd::Zstd     # Link zstd if required by libchdr or other deps
+        ZLIB::ZLIB
+        LZMA::LZMA
+        Zstd::Zstd
         shaderc
         oboe
         android
