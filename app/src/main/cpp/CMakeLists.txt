@@ -52,8 +52,6 @@ add_subdirectory(3rdparty/lzma)
 
 add_subdirectory(3rdparty/zstd)
 
-add_subdirectory(3rdparty/libchdr)
-
 add_subdirectory(pcsx2)
 #add_subdirectory(pcsx2-qt)
 
