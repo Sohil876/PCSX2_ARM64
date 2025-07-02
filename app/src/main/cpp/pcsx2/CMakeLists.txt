@@ -1161,7 +1161,6 @@ target_link_libraries(PCSX2_FLAGS INTERFACE
 	imgui
 	fmt::fmt
 	rapidyaml::rapidyaml
-	chdr-static
 	libzip::zip
 	cpuinfo
 	cubeb
@@ -1209,8 +1208,9 @@ if(WIN32)
 elseif(ANDROID)   
     find_library(log-lib log)
     target_link_directories(PCSX2 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ../3rdparty/libs)
-    target_link_libraries(PCSX2_FLAGS INTERFACE
-        shaderc
+    target_link_libraries(PCSX2_FLAGS INTERFACE PUBLIC
+        chdr-static
+	shaderc
         oboe
         android
         ${log-lib}
