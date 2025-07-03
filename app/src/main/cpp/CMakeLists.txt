@@ -45,11 +45,6 @@ write_svnrev_h()
 # make common
 add_subdirectory(common)
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/zlib ${CMAKE_BINARY_DIR}/3rdparty/zlib)
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/lzma ${CMAKE_BINARY_DIR}/3rdparty/lzma)
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/zstd ${CMAKE_BINARY_DIR}/3rdparty/zstd)
-add_subdirectory(${CMAKE_SOURCE_DIR}/3rdparty/libchdr ${CMAKE_BINARY_DIR}/3rdparty/libchdr)
-
 # make pcsx2
 add_subdirectory(pcsx2)
 #add_subdirectory(pcsx2-qt)
