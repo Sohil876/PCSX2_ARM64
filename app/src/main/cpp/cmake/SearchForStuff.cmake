@@ -16,7 +16,7 @@ if (WIN32)
     set(FFMPEG_INCLUDE_DIRS "${CMAKE_SOURCE_DIR}/3rdparty/ffmpeg/include")
     find_package(Vtune)
 elseif (ANDROID)
-    foreach(dep IN ITEMS zlib zstd lz4 libwebp SDL3 harfbuzz freetype oboe plutosvg1)
+    foreach(dep IN ITEMS zlib zstd lz4 lzma libchdr libwebp SDL3 harfbuzz freetype oboe plutosvg1 soundtouch simpleini imgui cpuinfo libzip rcheevos rapidjson discord-rpc freesurround fast_float rapidyaml demangler ccc)
         if(NOT TARGET ${dep})
             add_subdirectory(3rdparty/${dep} EXCLUDE_FROM_ALL)
         endif()
@@ -58,21 +58,19 @@ else()
         find_package(PkgConfig REQUIRED)
         pkg_check_modules(DBUS REQUIRED dbus-1)
     endif()
+    # On non-Android: build all non-graphics, non-audio 3rdparty libs (comment out any you don't have)
+    foreach(dep IN ITEMS zlib zstd lz4 lzma libchdr libwebp SDL3 harfbuzz freetype plutosvg1 soundtouch simpleini imgui cpuinfo libzip rcheevos rapidjson discord-rpc freesurround fast_float rapidyaml demangler ccc)
+        if(NOT TARGET ${dep})
+            add_subdirectory(3rdparty/${dep} EXCLUDE_FROM_ALL)
+        endif()
+    endforeach()
 endif()
 
 set(CMAKE_FIND_FRAMEWORK ${FIND_FRAMEWORK_BACKUP})
 
 #--------------------------
-# 3rdparty submodules (guarded!)
+# Disable compiler warnings for certain 3rdparty targets if they exist
 #--------------------------
-
-foreach(dep IN ITEMS fast_float rapidyaml lzma libchdr soundtouch simpleini imgui cpuinfo libzip rcheevos rapidjson discord-rpc freesurround)
-    if(NOT TARGET ${dep})
-        add_subdirectory(3rdparty/${dep} EXCLUDE_FROM_ALL)
-    endif()
-endforeach()
-
-# Only try to disable warnings if the target exists
 function(disable_warnings_if_exists target)
     if(TARGET ${target})
         if(MSVC)
@@ -83,11 +81,13 @@ function(disable_warnings_if_exists target)
     endif()
 endfunction()
 
-foreach(target IN ITEMS libchdr cpuinfo cubeb speex)
+foreach(target IN ITEMS libchdr cpuinfo cubeb speex soundtouch simpleini imgui libzip rcheevos discord-rpc freesurround)
     disable_warnings_if_exists(${target})
 endforeach()
 
+#--------------------------
 # Optional OpenGL and Vulkan
+#--------------------------
 if(USE_OPENGL AND NOT TARGET glad)
     add_subdirectory(3rdparty/glad EXCLUDE_FROM_ALL)
 endif()
@@ -95,33 +95,37 @@ if(USE_VULKAN AND NOT TARGET vulkan)
     add_subdirectory(3rdparty/vulkan EXCLUDE_FROM_ALL)
 endif()
 
+#--------------------------
 # Audio
+#--------------------------
 if(NOT TARGET cubeb)
     add_subdirectory(3rdparty/cubeb EXCLUDE_FROM_ALL)
 endif()
 
+#--------------------------
 # Qt (example, adjust as needed)
+#--------------------------
 # find_package(Qt6 6.7.3 COMPONENTS CoreTools Core GuiTools Gui WidgetsTools Widgets LinguistTools REQUIRED)
 
+#--------------------------
+# Windows only extras
+#--------------------------
 if(WIN32 AND NOT TARGET rainterface)
     add_subdirectory(3rdparty/rainterface EXCLUDE_FROM_ALL)
 endif()
 
-if(NOT TARGET demangler)
-    add_subdirectory(3rdparty/demangler EXCLUDE_FROM_ALL)
-endif()
-if(NOT TARGET ccc)
-    add_subdirectory(3rdparty/ccc EXCLUDE_FROM_ALL)
-endif()
-
+#--------------------------
 # Architecture-specific
+#--------------------------
 if(_M_X86 AND NOT TARGET zydis)
     add_subdirectory(3rdparty/zydis EXCLUDE_FROM_ALL)
 elseif(_M_ARM64 AND NOT TARGET vixl)
     add_subdirectory(3rdparty/vixl EXCLUDE_FROM_ALL)
 endif()
 
+#--------------------------
 # fmt (always last for custom flags)
+#--------------------------
 if(NOT TARGET fmt)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFMT_USE_EXCEPTIONS=0 -DFMT_USE_RTTI=0")
     add_subdirectory(3rdparty/fmt EXCLUDE_FROM_ALL)
