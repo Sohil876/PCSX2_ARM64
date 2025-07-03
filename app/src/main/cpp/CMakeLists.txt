@@ -45,6 +45,8 @@ write_svnrev_h()
 # make common
 add_subdirectory(common)
 
+add_subdirectory(3rdparty/libchdr)
+
 # make pcsx2
 add_subdirectory(pcsx2)
 #add_subdirectory(pcsx2-qt)
