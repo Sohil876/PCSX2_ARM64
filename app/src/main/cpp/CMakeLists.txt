@@ -45,7 +45,10 @@ write_svnrev_h()
 # make common
 add_subdirectory(common)
 
-add_subdirectory(3rdparty/libchdr)
+add_subdirectory(
+    ${CMAKE_SOURCE_DIR}/3rdparty/libchdr
+    ${CMAKE_BINARY_DIR}/3rdparty/libchdr_${CMAKE_ANDROID_ARCH_ABI}
+)
 
 # make pcsx2
 add_subdirectory(pcsx2)
