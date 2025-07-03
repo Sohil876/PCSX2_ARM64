@@ -2,15 +2,15 @@ cmake_minimum_required(VERSION 3.10)
 
 project(chdr VERSION 0.2 LANGUAGES C)
 
-if(CMAKE_PROJECT_NAME STREQUAL "chdr")
-  option(BUILD_SHARED_LIBS "Build libchdr also as a shared library" ON)
-endif()
+option(BUILD_SHARED_LIBS "Build libchdr as a shared library" OFF)
 option(INSTALL_STATIC_LIBS "Install static libraries" OFF)
 option(WITH_SYSTEM_ZLIB "Use system provided zlib library" OFF)
-option(WITH_SYSTEM_LZMA "Use system provided lzma library" OFF) # PATCH: add this line!
+option(WITH_SYSTEM_LZMA "Use system provided lzma library" OFF)
 option(WITH_SYSTEM_ZSTD "Use system provided zstd library" OFF)
-
 option(BUILD_LTO "Compile libchdr with link-time optimization if supported" OFF)
+option(BUILD_FUZZER "Build instrumented binary for fuzzing with libfuzzer, requires clang" OFF)
+option(BUILD_TESTS "Build test programs" OFF) # Custom option to control tests
+
 if(BUILD_LTO)
   include(CheckIPOSupported)
   check_ipo_supported(RESULT HAVE_IPO)
@@ -19,9 +19,7 @@ if(BUILD_LTO)
   endif()
 endif()
 
-option(BUILD_FUZZER "Build instrumented binary for fuzzing with libfuzzer, requires clang")
 if(BUILD_FUZZER)
-  # Override CFLAGS early for instrumentation. Disable shared libs for instrumentation.
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address,fuzzer-no-link")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,fuzzer-no-link")
   set(BUILD_SHARED_LIBS OFF)
@@ -29,11 +27,11 @@ endif()
 
 include(GNUInstallDirs)
 
-#--------------------------------------------------
+#-------------------------------
 # dependencies
-#--------------------------------------------------
+#-------------------------------
 
-# lzma
+# LZMA
 if (WITH_SYSTEM_LZMA)
   find_package(LZMA REQUIRED)
   list(APPEND PLATFORM_LIBS LZMA::LZMA)
@@ -45,7 +43,7 @@ else()
   list(APPEND CHDR_INCLUDES lzma)
 endif()
 
-# zlib
+# Zlib
 if (WITH_SYSTEM_ZLIB)
   find_package(ZLIB REQUIRED)
   list(APPEND PLATFORM_LIBS ZLIB::ZLIB)
@@ -58,7 +56,7 @@ else()
   list(APPEND CHDR_LIBS zlibstatic)
 endif()
 
-# zstd
+# Zstd
 if (WITH_SYSTEM_ZSTD)
   find_package(zstd REQUIRED)
   if(TARGET zstd::libzstd_shared)
@@ -76,9 +74,9 @@ else()
   list(APPEND CHDR_LIBS libzstd_static)
 endif()
 
-#--------------------------------------------------
-# chdr
-#--------------------------------------------------
+#-------------------------------
+# chdr library
+#-------------------------------
 
 set(CHDR_SOURCES
   src/libchdr_bitstream.c
@@ -128,7 +126,7 @@ if (BUILD_SHARED_LIBS)
 
   if (CMAKE_BUILD_TYPE MATCHES Release)
     #add_custom_command(TARGET chdr POST_BUILD COMMAND ${CMAKE_STRIP} libchdr.so)
-  endif (CMAKE_BUILD_TYPE MATCHES Release)
+  endif()
 
   install(TARGETS chdr
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
@@ -140,4 +138,7 @@ if (BUILD_SHARED_LIBS)
   install(FILES ${CMAKE_BINARY_DIR}/libchdr.pc DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 endif()
 
-add_subdirectory(tests)
+# Only build tests if requested (default OFF; avoids subdir conflicts in superbuilds)
+if(BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
