@@ -87,8 +87,8 @@ Java_kr_co_iefriends_pcsx2_NativeApp_initialize(JNIEnv *env, jclass clazz,
 
         // and show some stats :)
         si.SetBoolValue("EmuCore/GS", "OsdShowFPS", true);
-        si.SetBoolValue("EmuCore/GS", "OsdShowResolution", true);
-        si.SetBoolValue("EmuCore/GS", "OsdShowGSStats", true);
+        si.SetBoolValue("EmuCore/GS", "OsdShowResolution", false);
+        si.SetBoolValue("EmuCore/GS", "OsdShowGSStats", false);
 
 //        // remove memory cards, so we don't have sharing violations
 //        for (u32 i = 0; i < 2; i++)
