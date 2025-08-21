@@ -462,7 +462,7 @@ static void recDIVsuper(int info, bool sign, bool upper, int process)
 //	xCMP(divisor, 0);
 //	u8* cont3 = JNE8(0);
     a64::Label cont3;
-    armAsm->Cbnz(divisor, &cont3);
+    armCbnz(divisor, &cont3);
 	//divide by zero
 //	xMOV(edx, eax);
     armAsm->Mov(EDX, EAX);

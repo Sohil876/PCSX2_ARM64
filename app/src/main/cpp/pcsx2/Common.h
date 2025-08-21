@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "arm64/VixlHelpers.h"
 #include "common/Pcsx2Defs.h"
 
 static const u32 BIAS = 2;				// Bus is half of the actual ps2 speed

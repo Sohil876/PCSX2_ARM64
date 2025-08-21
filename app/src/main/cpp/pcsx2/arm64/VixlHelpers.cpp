@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2002-2024 PCSX2 Dev Team
 // SPDX-License-Identifier: GPL-3.0
 
-#include "common/arm64/AsmHelpers.h"
+#include "VixlHelpers.h"
 
 #include "common/Assertions.h"
 #include "common/BitUtils.h"
@@ -160,7 +160,8 @@ void armEmitJmp(const void* ptr, bool force_inline)
 
     if (use_blr)
     {
-        armAsm->Mov(RXVIXLSCRATCH, reinterpret_cast<uintptr_t>(ptr));
+        armAsm->Mov(RXVIXLSCRATCH, (uptr)ptr);
+//        armAsm->Ldr(RXVIXLSCRATCH, (uptr)ptr);
         armAsm->Br(RXVIXLSCRATCH);
     }
     else
@@ -185,7 +186,8 @@ void armEmitCall(const void* ptr, bool force_inline)
 
     if (use_blr)
     {
-        armAsm->Mov(RXVIXLSCRATCH, reinterpret_cast<uintptr_t>(ptr));
+        armAsm->Mov(RXVIXLSCRATCH, (uptr)ptr);
+//        armAsm->Ldr(RXVIXLSCRATCH, (uptr)ptr);
         armAsm->Blr(RXVIXLSCRATCH);
     }
     else
@@ -273,6 +275,16 @@ void armMoveAddressToReg(const a64::Register& reg, const void* addr)
     {
         armAsm->Mov(reg, reinterpret_cast<uintptr_t>(addr));
     }
+}
+
+void armCbz(const a64::Register& reg, a64::Label* p_label)
+{
+    armAsm->Cbz(reg, p_label);
+}
+
+void armCbnz(const a64::Register& reg, a64::Label* p_label)
+{
+    armAsm->Cbnz(reg, p_label);
 }
 
 void armLoadPtr(const a64::CPURegister& reg, const void* addr)
@@ -581,6 +593,12 @@ void armLoadPtr(uint64_t imm, a64::Register regRs, int64_t offset, const a64::Re
 a64::VRegister armLoadPtrV(const void* addr)
 {
     armAsm->Ldr(RQSCRATCH, armMemOperandPtr(addr));
+    return RQSCRATCH;
+}
+
+a64::VRegister armLoadPtrM(const a64::MemOperand offset)
+{
+    armAsm->Ldr(RQSCRATCH, offset);
     return RQSCRATCH;
 }
 
@@ -997,67 +1015,17 @@ void armPMOVMSKB(const a64::Register& regDst, const a64::VRegister& regSrc)
 
 void armSHUFPS(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int pIndex)
 {
-    armShuffle(dstreg, srcreg, pIndex, true);
+    armAsm->Mov(RQSCRATCH3, armLoadPtrV(PTR_CPU(shuffle.data[pIndex][1])).Q());
+    ////
+    armAsm->Mov(RQSCRATCH2, srcreg);
+    armAsm->Mov(RQSCRATCH, dstreg);
+    armAsm->Tbx(dstreg.V16B(), RQSCRATCH.V16B(), RQSCRATCH2.V16B(), RQSCRATCH3.V16B());
 }
 
 void armPSHUFD(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int pIndex)
 {
-    armShuffle(dstreg, srcreg, pIndex, false);
-}
-
-void armShuffleTblx(const a64::VRegister& p_dst, const a64::VRegister& p_src, int p_a, int p_b, int p_c, int p_d, bool p_is_tbx)
-{
-    uint8_t lanes[16];
-    int i, s, e, nIndex = 0;
-
-    int lanesTbx = 0;
-    if(p_is_tbx) {
-        lanesTbx = 16;
-    }
-
-    // 0, 4, 8, 12
-    // 0 * 4 = 0, 1 * 4 = 4, 2 * 4 = 8, 3 * 4 = 12
-    // lanes 16 => 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
-
-    s = p_a << 2; e = s + 4;
-    for(i=s; i<e; ++i) {
-        lanes[nIndex++] = i;
-    }
-    ////
-    s = p_b << 2; e = s + 4;
-    for(i=s; i<e; ++i) {
-        lanes[nIndex++] = i;
-    }
-    ////
-    s = p_c << 2; e = s + 4;
-    for(i=s; i<e; ++i) {
-        lanes[nIndex++] = i + lanesTbx;
-    }
-    ////
-    s = p_d << 2; e = s + 4;
-    for(i=s; i<e; ++i) {
-        lanes[nIndex++] = i + lanesTbx;
-    }
-
-    armLoadConstant128(RQSCRATCH3, lanes);
-
-    if(p_is_tbx) {
-        armAsm->Mov(RQSCRATCH, p_dst);
-        armAsm->Mov(RQSCRATCH2, p_src);
-        armAsm->Tbx(p_dst.V16B(), RQSCRATCH.V16B(), RQSCRATCH2.V16B(), RQSCRATCH3.V16B());
-    } else {
-        armAsm->Tbl(p_dst.V16B(), p_src.V16B(), RQSCRATCH3.V16B());
-    }
-}
-
-void armShuffle(const a64::VRegister& dstreg, const a64::VRegister& srcreg, int pIndex, bool p_is_tbx)
-{
-    int shuffle_0 = (pIndex >> 0) & 0x3;
-    int shuffle_1 = (pIndex >> 2) & 0x3;
-    int shuffle_2 = (pIndex >> 4) & 0x3;
-    int shuffle_3 = (pIndex >> 6) & 0x3;
-    ////
-    armShuffleTblx(dstreg, srcreg, shuffle_0, shuffle_1, shuffle_2, shuffle_3, p_is_tbx);
+    armAsm->Mov(RQSCRATCH3, armLoadPtrV(PTR_CPU(shuffle.data[pIndex][0])).Q());
+    armAsm->Tbl(dstreg.V16B(), srcreg.V16B(), RQSCRATCH3.V16B());
 }
 
 int find_bit_pos(uint32_t p_hex_value)

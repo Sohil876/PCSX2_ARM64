@@ -20,7 +20,7 @@ static const int psxInstCycles_Load = 0;
 #define PSX_HI XMMGPR_HI
 #define PSX_LO XMMGPR_LO
 
-extern uptr psxRecLUT[];
+alignas(16) extern uptr psxRecLUT[];
 
 void _psxFlushConstReg(int reg);
 void _psxFlushConstRegs();

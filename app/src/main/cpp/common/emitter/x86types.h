@@ -6,7 +6,10 @@
 #include "common/Threading.h"
 #include "common/Assertions.h"
 #include "common/Pcsx2Defs.h"
-#include "common/arm64/AsmHelpers.h"
+
+#include "vixl/aarch64/constants-aarch64.h"
+#include "vixl/aarch64/macro-assembler-aarch64.h"
+namespace a64 = vixl::aarch64;
 
 static const uint iREGCNT_XMM = 16;
 #if defined(__ANDROID__)

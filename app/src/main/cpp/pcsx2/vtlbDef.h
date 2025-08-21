@@ -77,7 +77,7 @@ namespace vtlb_private
 
     struct VTLBVirtual
     {
-    public:
+    private:
         uptr value;
         explicit VTLBVirtual(uptr value): value(value) { }
     public:

@@ -651,7 +651,7 @@ void FPU_MUL(int regd, int regt, bool reverseOperands)
 		// 	else
 		// 		return 0;
 
-		alignas(16) static constexpr const u32 result[4] = { 0x3f490fda };
+//		alignas(16) static constexpr const u32 result[4] = { 0x3f490fda };
 
 //		xMOVD(ecx, xRegisterSSE(reverseOperands ? regt : regd));
         armAsm->Fmov(ECX, reverseOperands ? regT.S() : regD.S());
@@ -668,9 +668,9 @@ void FPU_MUL(int regd, int regt, bool reverseOperands)
 
 //		u8* noHack = JNZ8(0);
         a64::Label noHack;
-        armAsm->Cbnz(EDX, &noHack);
+        armCbnz(EDX, &noHack);
 //			xMOVAPS(xRegisterSSE(regd), ptr128[result]);
-            armAsm->Ldr(regD.Q(), armMemOperandPtr(result));
+            armAsm->Ldr(regD.Q(), PTR_CPU(mVUss4.result));
 //			endMul = JMP8(0);
             armAsm->B(&endMul);
 //		x86SetJ8(noHack);
@@ -1414,7 +1414,7 @@ void recDIV_S_xmm(int info)
 
 	if (EmuConfig.Cpu.FPUFPCR.bitmask != EmuConfig.Cpu.FPUDivFPCR.bitmask) {
 //        xLDMXCSR(ptr32[&EmuConfig.Cpu.FPUDivFPCR.bitmask]);
-        armAsm->Msr(a64::FPCR, armLoadPtr64(&EmuConfig.Cpu.FPUDivFPCR.bitmask));
+        armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUDivFPCR.bitmask)));
     }
 
 	switch (info & (PROCESS_EE_S | PROCESS_EE_T))
@@ -1491,7 +1491,7 @@ void recDIV_S_xmm(int info)
 
 	if (EmuConfig.Cpu.FPUFPCR.bitmask != EmuConfig.Cpu.FPUDivFPCR.bitmask) {
 //        xLDMXCSR(ptr32[&EmuConfig.Cpu.FPUFPCR.bitmask]);
-        armAsm->Msr(a64::FPCR, armLoadPtr64(&EmuConfig.Cpu.FPUFPCR.bitmask));
+        armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUFPCR.bitmask)));
     }
 
 	_freeXMMreg(t0reg);
@@ -2213,7 +2213,7 @@ void recSQRT_S_xmm(int info)
 		roundmode_nearest = EmuConfig.Cpu.FPUFPCR;
 		roundmode_nearest.SetRoundMode(FPRoundMode::Nearest);
 //		xLDMXCSR(ptr32[&roundmode_nearest.bitmask]);
-        armAsm->Msr(a64::FPCR, armLoadPtr64(&roundmode_nearest.bitmask));
+        armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUFPCR.bitmask)));
 		roundmodeFlag = true;
 	}
 
@@ -2262,7 +2262,7 @@ void recSQRT_S_xmm(int info)
 
 	if (roundmodeFlag) {
 //        xLDMXCSR(ptr32[&EmuConfig.Cpu.FPUFPCR.bitmask]);
-        armAsm->Msr(a64::FPCR, armLoadPtr64(&EmuConfig.Cpu.FPUFPCR.bitmask));
+        armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUFPCR.bitmask)));
     }
 }
 

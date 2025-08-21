@@ -1171,7 +1171,7 @@ static void rpsxDIVsuper(int info, int sign, int process = 0)
 //	xCMP(ecx, 0);
 //	u8* cont3 = JNE8(0);
     a64::Label cont3;
-    armAsm->Cbnz(ECX, &cont3);
+    armCbnz(ECX, &cont3);
 
 	//divide by zero
 //	xMOV(edx, eax);

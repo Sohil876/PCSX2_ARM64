@@ -44,9 +44,7 @@ void mVUdispatcherAB(mV)
 		// Load VU's MXCSR state
 		if (mvuNeedsFPCRUpdate(mVU)) {
 //            xLDMXCSR(ptr32[isVU0 ? &EmuConfig.Cpu.VU0FPCR.bitmask : &EmuConfig.Cpu.VU1FPCR.bitmask]);
-            armAsm->Msr(a64::FPCR, isVU0
-                                   ? armLoadPtr64(&EmuConfig.Cpu.VU0FPCR.bitmask)
-                                   : armLoadPtr64(&EmuConfig.Cpu.VU1FPCR.bitmask));
+            armAsm->Msr(a64::FPCR, armLoad64(isVU0 ? PTR_CPU(Cpu.VU0FPCR.bitmask) : PTR_CPU(Cpu.VU1FPCR.bitmask)));
         }
 
         // Load Regs
@@ -107,7 +105,7 @@ void mVUdispatcherAB(mV)
 		// Load EE's MXCSR state
 		if (mvuNeedsFPCRUpdate(mVU)) {
 //            xLDMXCSR(ptr32[&EmuConfig.Cpu.FPUFPCR.bitmask]);
-            armAsm->Msr(a64::FPCR, armLoadPtr64(&EmuConfig.Cpu.FPUFPCR.bitmask));
+            armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUFPCR.bitmask)));
         }
 
 		// = The first two DWORD or smaller arguments are passed in ECX and EDX registers;
@@ -144,9 +142,7 @@ void mVUdispatcherCD(mV)
         // Load VU's MXCSR state
         if (mvuNeedsFPCRUpdate(mVU)) {
 //            xLDMXCSR(ptr32[isVU0 ? &EmuConfig.Cpu.VU0FPCR.bitmask : &EmuConfig.Cpu.VU1FPCR.bitmask]);
-            armAsm->Msr(a64::FPCR, isVU0
-                                   ? armLoadPtr64(&EmuConfig.Cpu.VU0FPCR.bitmask)
-                                   : armLoadPtr64(&EmuConfig.Cpu.VU1FPCR.bitmask));
+            armAsm->Msr(a64::FPCR, armLoad64(isVU0 ? PTR_CPU(Cpu.VU0FPCR.bitmask) : PTR_CPU(Cpu.VU1FPCR.bitmask)));
         }
 
         mVUrestoreRegs(mVU);
@@ -178,7 +174,7 @@ void mVUdispatcherCD(mV)
         // Load EE's MXCSR state
         if (mvuNeedsFPCRUpdate(mVU)) {
 //            xLDMXCSR(ptr32[&EmuConfig.Cpu.FPUFPCR.bitmask]);
-            armAsm->Msr(a64::FPCR, armLoadPtr64(&EmuConfig.Cpu.FPUFPCR.bitmask));
+            armAsm->Msr(a64::FPCR, armLoad64(PTR_CPU(Cpu.FPUFPCR.bitmask)));
         }
 
         armEndStackFrame();
@@ -222,7 +218,7 @@ static void mVUGenerateWaitMTVU(mV)
     ////
 //	xFastCall((void*)mVUwaitMTVU);
     armAsm->Push(a64::xzr, a64::lr);
-    armAsm->Mov(RXVIXLSCRATCH, reinterpret_cast<intptr_t>(mVUwaitMTVU));
+    armAsm->Ldr(RXVIXLSCRATCH, (uptr)mVUwaitMTVU);
     armAsm->Blr(RXVIXLSCRATCH);
     armAsm->Pop(a64::lr, a64::xzr);
     ////
@@ -259,33 +255,34 @@ static void mVUGenerateCopyPipelineState(mV)
 {
     mVU.copyPLState = armStartBlock();
     {
-//		xMOVAPS(xmm0, ptr[rax]);
-        armAsm->Ldr(xmm0, a64::MemOperand(RAX));
-//		xMOVAPS(xmm1, ptr[rax + 16u]);
-        armAsm->Ldr(xmm1, a64::MemOperand(RAX, 16u));
-//		xMOVAPS(xmm2, ptr[rax + 32u]);
-        armAsm->Ldr(xmm2, a64::MemOperand(RAX, 32u));
-//		xMOVAPS(xmm3, ptr[rax + 48u]);
-        armAsm->Ldr(xmm3, a64::MemOperand(RAX, 48u));
-//		xMOVAPS(xmm4, ptr[rax + 64u]);
-        armAsm->Ldr(xmm4, a64::MemOperand(RAX, 64u));
-//		xMOVAPS(xmm5, ptr[rax + 80u]);
-        armAsm->Ldr(xmm5, a64::MemOperand(RAX, 80u));
+        auto mop_rax = a64::MemOperand(RAX);
+        auto mop_lpState = PTR_MVU(microVU[mVU.index].prog.lpState);
 
-        a64::MemOperand mop = PTR_MVU(microVU[mVU.index].prog.lpState);
+//		xMOVAPS(xmm0, ptr[rax]);
+        armAsm->Ldr(xmm0, mop_rax);
+//		xMOVAPS(xmm1, ptr[rax + 16u]);
+        armAsm->Ldr(xmm1, armOffsetMemOperand(mop_rax, 16u));
+//		xMOVAPS(xmm2, ptr[rax + 32u]);
+        armAsm->Ldr(xmm2, armOffsetMemOperand(mop_rax, 32u));
+//		xMOVAPS(xmm3, ptr[rax + 48u]);
+        armAsm->Ldr(xmm3, armOffsetMemOperand(mop_rax, 48u));
+//		xMOVAPS(xmm4, ptr[rax + 64u]);
+        armAsm->Ldr(xmm4, armOffsetMemOperand(mop_rax, 64u));
+//		xMOVAPS(xmm5, ptr[rax + 80u]);
+        armAsm->Ldr(xmm5, armOffsetMemOperand(mop_rax, 80u));
 
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState)], xmm0);
-        armAsm->Str(xmm0, mop);
+        armAsm->Str(xmm0, mop_lpState);
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState) + 16u], xmm1);
-        armAsm->Str(xmm1, armOffsetMemOperand(mop, 16u));
+        armAsm->Str(xmm1, armOffsetMemOperand(mop_lpState, 16u));
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState) + 32u], xmm2);
-        armAsm->Str(xmm2, armOffsetMemOperand(mop, 32u));
+        armAsm->Str(xmm2, armOffsetMemOperand(mop_lpState, 32u));
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState) + 48u], xmm3);
-        armAsm->Str(xmm3, armOffsetMemOperand(mop, 48u));
+        armAsm->Str(xmm3, armOffsetMemOperand(mop_lpState, 48u));
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState) + 64u], xmm4);
-        armAsm->Str(xmm4, armOffsetMemOperand(mop, 64u));
+        armAsm->Str(xmm4, armOffsetMemOperand(mop_lpState, 64u));
 //		xMOVUPS(ptr[reinterpret_cast<u8*>(&mVU.prog.lpState) + 80u], xmm5);
-        armAsm->Str(xmm5, armOffsetMemOperand(mop, 80u));
+        armAsm->Str(xmm5, armOffsetMemOperand(mop_lpState, 80u));
     }
 
 //	xRET();
@@ -307,14 +304,17 @@ static void mVUGenerateCompareState(mV)
 {
     mVU.compareStateF = armStartBlock();
     {
+        auto mop_arg1reg = a64::MemOperand(RCX);
+        auto mop_arg2reg = a64::MemOperand(RDX);
+
 //		xMOVAPS  (xmm0, ptr32[arg1reg]);
-        armAsm->Ldr(xmm0, a64::MemOperand(RCX));
+        armAsm->Ldr(xmm0, mop_arg1reg);
 //		xPCMP.EQD(xmm0, ptr32[arg2reg]);
-        armAsm->Cmeq(xmm0.V4S(), xmm0.V4S(), armLoadPtrM(RDX).V4S());
+        armAsm->Cmeq(xmm0.V4S(), xmm0.V4S(), armLoadPtrM(mop_arg2reg).V4S());
 //		xMOVAPS  (xmm1, ptr32[arg1reg + 0x10]);
-        armAsm->Ldr(xmm1, a64::MemOperand(RCX, 0x10));
+        armAsm->Ldr(xmm1, armOffsetMemOperand(mop_arg1reg, 0x10));
 //		xPCMP.EQD(xmm1, ptr32[arg2reg + 0x10]);
-        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(RDX, 0x10).V4S());
+        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(armOffsetMemOperand(mop_arg2reg, 0x10)).V4S());
 //		xPAND    (xmm0, xmm1);
         armAsm->And(xmm0.V16B(), xmm0.V16B(), xmm1.V16B());
 
@@ -325,27 +325,27 @@ static void mVUGenerateCompareState(mV)
 
 //		xForwardJNZ8 exitPoint;
         a64::Label exitPoint;
-        armAsm->Cbnz(EAX, &exitPoint);
+        armCbnz(EAX, &exitPoint);
 
 //		xMOVAPS  (xmm0, ptr32[arg1reg + 0x20]);
-        armAsm->Ldr(xmm0, a64::MemOperand(RCX, 0x20));
+        armAsm->Ldr(xmm0, armOffsetMemOperand(mop_arg1reg, 0x20));
 //		xPCMP.EQD(xmm0, ptr32[arg2reg + 0x20]);
-        armAsm->Cmeq(xmm0.V4S(), xmm0.V4S(), armLoadPtrM(RDX, 0x20).V4S());
+        armAsm->Cmeq(xmm0.V4S(), xmm0.V4S(), armLoadPtrM(armOffsetMemOperand(mop_arg2reg, 0x20)).V4S());
 //		xMOVAPS  (xmm1, ptr32[arg1reg + 0x30]);
-        armAsm->Ldr(xmm1, a64::MemOperand(RCX, 0x30));
+        armAsm->Ldr(xmm1, armOffsetMemOperand(mop_arg1reg, 0x30));
 //		xPCMP.EQD(xmm1, ptr32[arg2reg + 0x30]);
-        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(RDX, 0x30).V4S());
+        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(armOffsetMemOperand(mop_arg2reg, 0x30)).V4S());
 //		xPAND    (xmm0, xmm1);
         armAsm->And(xmm0.V16B(), xmm0.V16B(), xmm1.V16B());
 
 //		xMOVAPS  (xmm1, ptr32[arg1reg + 0x40]);
-        armAsm->Ldr(xmm1, a64::MemOperand(RCX, 0x40));
+        armAsm->Ldr(xmm1, armOffsetMemOperand(mop_arg1reg, 0x40));
 //		xPCMP.EQD(xmm1, ptr32[arg2reg + 0x40]);
-        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(RDX, 0x40).V4S());
+        armAsm->Cmeq(xmm1.V4S(), xmm1.V4S(), armLoadPtrM(armOffsetMemOperand(mop_arg2reg, 0x40)).V4S());
 //		xMOVAPS  (xmm2, ptr32[arg1reg + 0x50]);
-        armAsm->Ldr(xmm2, a64::MemOperand(RCX, 0x50));
+        armAsm->Ldr(xmm2, armOffsetMemOperand(mop_arg1reg, 0x50));
 //		xPCMP.EQD(xmm2, ptr32[arg2reg + 0x50]);
-        armAsm->Cmeq(xmm2.V4S(), xmm2.V4S(), armLoadPtrM(RDX, 0x50).V4S());
+        armAsm->Cmeq(xmm2.V4S(), xmm2.V4S(), armLoadPtrM(armOffsetMemOperand(mop_arg2reg, 0x50)).V4S());
 //		xPAND    (xmm1, xmm2);
         armAsm->And(xmm1.V16B(), xmm1.V16B(), xmm2.V16B());
 //		xPAND    (xmm0, xmm1);

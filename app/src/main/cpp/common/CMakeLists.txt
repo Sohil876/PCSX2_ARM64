@@ -124,8 +124,6 @@ if(_M_X86)
 	)
 else()
 	target_sources(common PRIVATE
-		arm64/AsmHelpers.cpp
-		arm64/AsmHelpers.h
 		emitter/x86emitter.cpp
 		emitter/x86emitter.h
 		emitter/x86types.h
@@ -216,7 +214,6 @@ if(NOT WIN32)
 endif()
 
 if(ANDROID)
-	target_link_libraries(common INTERFACE vixl)
 	target_link_libraries(common PRIVATE
 		${LIBC_LIBRARIES}
 		jpeg
@@ -248,11 +245,7 @@ endif()
 
 fixup_file_properties(common)
 target_compile_features(common PUBLIC cxx_std_20)
-if(ANDROID)
-	target_include_directories(common PUBLIC ../3rdparty/include ../3rdparty/vixl/include ../)
-else()
-	target_include_directories(common PUBLIC ../3rdparty/include ../)
-endif()
+target_include_directories(common PUBLIC ../3rdparty/include ../3rdparty/vixl/include ../)
 target_compile_definitions(common PUBLIC "${PCSX2_DEFS}")
 target_compile_options(common PRIVATE "${PCSX2_WARNINGS}")
 

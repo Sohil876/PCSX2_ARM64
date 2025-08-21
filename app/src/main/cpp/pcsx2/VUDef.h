@@ -257,6 +257,8 @@ struct mVU_SSE4
     u32 g_minvals[4] = {0xff7fffff, 0xff7fffff, 0xff7fffff, 0xff7fffff};
     u32 g_maxvals[4] = {0x7f7fffff, 0x7f7fffff, 0x7f7fffff, 0x7f7fffff};
     ////
+    u32 result[4] = { 0x3f490fda };
+    ////
     u32 minmax_mask[8] =
     {
         0xffffffff, 0x80000000, 0, 0,

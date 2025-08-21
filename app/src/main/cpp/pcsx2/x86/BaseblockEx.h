@@ -7,7 +7,7 @@
 #include <map>
 
 #include "common/Assertions.h"
-#include "common/arm64/AsmHelpers.h"
+#include "arm64/VixlHelpers.h"
 
 // Every potential jump point in the PS2's addressable memory has a BASEBLOCK
 // associated with it. So that means a BASEBLOCK for every 4 bytes of PS2

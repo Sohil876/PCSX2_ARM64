@@ -1056,13 +1056,13 @@ set(pcsx2x86Headers
 set(pcsx2arm64Sources
 	arm64/Vif_Dynarec.cpp
 	arm64/Vif_UnpackNEON.cpp
-#	arm64/AsmHelpers.cpp
+	arm64/VixlHelpers.cpp
 #	arm64/RecStubs.cpp
 	)
 
-#set(pcsx2arm64Headers
-#	arm64/AsmHelpers.h
-#)
+set(pcsx2arm64Headers
+	arm64/VixlHelpers.h
+)
 
 # These ones benefit a lot from LTO
 set(pcsx2LTOSources

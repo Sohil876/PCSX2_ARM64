@@ -18,6 +18,7 @@
 
 #if defined(__ANDROID__)
 #include "common/emitter/x86types.h"
+
 #else
 #include "common/emitter/internal.h"
 #endif
