@@ -1403,7 +1403,7 @@ static void rpsxLoad(int size, bool sign)
     armAsm->And(EAX, EAX,  0x1fffff);
 
 //	auto addr = xComplexAddress(rax, iopMem->Main, arg1reg);
-    const auto addr = a64::MemOperand(RSTATE_x29, RAX);
+    const auto addr = a64::MemOperand(RSTATE_x26, RAX);
 	switch (size)
 	{
 		case 8:

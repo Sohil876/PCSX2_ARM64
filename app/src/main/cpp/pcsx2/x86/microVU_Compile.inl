@@ -973,14 +973,19 @@ void* mVUcompile(microVU& mVU, u32 startPC, uptr pState)
 
 				mVUsetupBranch(mVU, mFC);
 				// Make sure we save the current state so it can come back to it
-				u32* cpS = (u32*)&mVUregs;
-				u32* lpS = (u32*)&mVU.prog.lpState;
+//				u32* cpS = (u32*)&mVUregs;
+//				u32* lpS = (u32*)&mVU.prog.lpState;
+
+                auto cpS = armMemOperandPtr((u32*)&mVUregs);
+                auto lpS = armMemOperandPtr((u32*)&mVU.prog.lpState);
+
                 size_t i, e = (sizeof(microRegInfo) - 4) >> 2; // sizeof(microRegInfo) - 4
-				for (i = 0; i < e; ++i, ++lpS, ++cpS)
+                for (i = 0; i < e; ++i)
 				{
 //					xMOV(ptr32[lpS], cpS[0]);
-                    armStorePtr(cpS[0], lpS);
+                    armAsm->Str(armOffsetMemOperand(cpS, 1).GetRegisterOffset(), armOffsetMemOperand(lpS, 1));
 				}
+
 				incPC(2);
 				mVUsetupRange(mVU, xPC, false);
 				if (EmuConfig.Gamefixes.VUSyncHack || EmuConfig.Gamefixes.FullVU0SyncHack) {

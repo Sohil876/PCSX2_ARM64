@@ -10,7 +10,7 @@
 #include "R3000ADef.h"
 #include "VUDef.h"
 #include "vtlbDef.h"
-#include "arm64/ShuffleLanes.h"
+#include "ShuffleLanes.h"
 
 struct cpuRegistersPack
 {

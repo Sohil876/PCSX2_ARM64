@@ -412,13 +412,13 @@ static const void* _DynGen_JITCompile()
 //	xJMP(ptrNative[rbx * (wordsize / 4) + rcx]);
 
     armLoad(EAX, PTR_CPU(cpuRegs.pc));
-    armAsm->Lsr(ECX, EAX, 16);
-    armAsm->Lsr(EAX, EAX, 2);
-//    armMoveAddressToReg(RDX, &recLUT);
-    armAsm->Mov(RDX, (uptr)&recLUT);
-    armAsm->Ldr(RCX, a64::MemOperand(RDX, RCX, a64::LSL, 3));
     ////
+    armAsm->Lsr(ECX, EAX, 16);
+    armAsm->Ldr(RCX, a64::MemOperand(RSTATE_x29, RCX, a64::LSL, 3));
+    ////
+    armAsm->Lsr(EAX, EAX, 2);
     armAsm->Ldr(RAX, a64::MemOperand(RCX, RAX, a64::LSL, 3));
+    ////
     armAsm->Br(RAX);
 
 	return retval;
@@ -441,13 +441,13 @@ static const void* _DynGen_DispatcherReg()
 //	xJMP(ptrNative[rbx * (wordsize / 4) + rcx]);
 
     armLoad(EAX, PTR_CPU(cpuRegs.pc));
-    armAsm->Lsr(ECX, EAX, 16);
-    armAsm->Lsr(EAX, EAX, 2);
-//    armMoveAddressToReg(RDX, &recLUT);
-    armAsm->Mov(RDX, (uptr)&recLUT);
-    armAsm->Ldr(RCX, a64::MemOperand(RDX, RCX, a64::LSL, 3));
     ////
+    armAsm->Lsr(ECX, EAX, 16);
+    armAsm->Ldr(RCX, a64::MemOperand(RSTATE_x29, RCX, a64::LSL, 3));
+    ////
+    armAsm->Lsr(EAX, EAX, 2);
     armAsm->Ldr(RAX, a64::MemOperand(RCX, RAX, a64::LSL, 3));
+    ////
     armAsm->Br(RAX);
 
 	return retval;
@@ -490,9 +490,9 @@ static const void* _DynGen_EnterRecompiledCode()
 #endif
 
     // From memory to registry
+    armMoveAddressToReg(RSTATE_x29, &recLUT);
     armMoveAddressToReg(RSTATE_PSX, &psxRegs);
     armMoveAddressToReg(RSTATE_CPU, &g_cpuRegistersPack);
-    armMoveAddressToReg(RSTATE_x26, &eeHw);
 
 	if (CHECK_FASTMEM) {
 //        xMOV(RFASTMEMBASE, ptrNative[&vtlb_private::vtlbdata.fastmem_base]);
@@ -802,14 +802,16 @@ void recClear(u32 addr, u32 size)
 {
 	if ((addr) >= maxrecmem || !(recLUT[(addr) >> 16] + (addr & ~0xFFFFUL)))
 		return;
+
 	addr = HWADDR(addr);
 
-	int blockidx = recBlocks.LastIndex(addr + size * 4 - 4);
+    u32 addr_size = addr + (size << 2); // // size * 4
+	int blockidx = recBlocks.LastIndex(addr_size - 4);
 
 	if (blockidx == -1)
 		return;
 
-	u32 lowerextent = static_cast<u32>(-1), upperextent = 0, ceiling = static_cast<u32>(-1);
+	u32 lowerextent = 0xFFFFFFFF, upperextent = 0, ceiling = 0xFFFFFFFF; // 0xFFFFFFFF == -1
 
 	BASEBLOCKEX* pexblock = recBlocks[blockidx + 1];
 	if (pexblock)
@@ -817,11 +819,12 @@ void recClear(u32 addr, u32 size)
 
 	int toRemoveLast = blockidx;
 
+    u32 blockstart, blockend;
 	while ((pexblock = recBlocks[blockidx]))
 	{
-		u32 blockstart = pexblock->startpc;
-		u32 blockend = pexblock->startpc + pexblock->size * 4;
-		BASEBLOCK* pblock = PC_GETBLOCK(blockstart);
+		blockstart = pexblock->startpc;
+		blockend = pexblock->startpc + (pexblock->size << 2); // pexblock->size * 4
+        BASEBLOCK* pblock = PC_GETBLOCK(blockstart);
 
 		if (pblock == s_pCurBlock)
 		{
@@ -853,12 +856,12 @@ void recClear(u32 addr, u32 size)
 
 	upperextent = std::min(upperextent, ceiling);
 
-	for (int i = 0; (pexblock = recBlocks[i]); i++)
+	for (int i = 0; (pexblock = recBlocks[i]); ++i)
 	{
 		if (s_pCurBlock == PC_GETBLOCK(pexblock->startpc))
 			continue;
-		u32 blockend = pexblock->startpc + pexblock->size * 4;
-		if ((pexblock->startpc >= addr && pexblock->startpc < addr + size * 4) || (pexblock->startpc < addr && blockend > addr)) [[unlikely]]
+		blockend = pexblock->startpc + (pexblock->size << 2); // pexblock->size * 4
+		if ((pexblock->startpc >= addr && pexblock->startpc < addr_size) || (pexblock->startpc < addr && blockend > addr)) [[unlikely]]
 		{
 			Console.Error("[EE] Impossible block clearing failure");
 			pxFail("[EE] Impossible block clearing failure");
@@ -2118,7 +2121,9 @@ static void PreBlockCheck(u32 blockpc)
 //  less likely, self-modifying code)
 void dyna_block_discard(u32 start, u32 sz)
 {
+#ifdef PCSX2_DEVBUILD
 	eeRecPerfLog.Write(Color_StrongGray, "Clearing Manual Block @ 0x%08X  [size=%d]", start, sz * 4);
+#endif
 	recClear(start, sz);
 }
 
@@ -2135,11 +2140,12 @@ void dyna_page_reset(u32 start, u32 sz)
 static void memory_protect_recompiled_code(u32 startpc, u32 size)
 {
 	u32 inpage_ptr = HWADDR(startpc);
-	const u32 inpage_sz = size * 4;
+	const u32 inpage_sz = size << 2; // size * 4
 
 	// The kernel context register is stored @ 0x800010C0-0x80001300
 	// The EENULL thread context register is stored @ 0x81000-....
-	const bool contains_thread_stack = ((startpc >> 12) == 0x81) || ((startpc >> 12) == 0x80001);
+    u32 startpc_lsr_12 = (startpc >> 12);
+	const bool contains_thread_stack = (startpc_lsr_12 == 0x81) || (startpc_lsr_12 == 0x80001);
 
 	// note: blocks are guaranteed to reside within the confines of a single page.
 	const vtlb_ProtectionMode PageType = contains_thread_stack ? ProtMode_Manual : mmap_GetRamPageInfo(inpage_ptr);
@@ -2159,16 +2165,24 @@ static void memory_protect_recompiled_code(u32 startpc, u32 size)
 //			xMOV(arg1regd, inpage_ptr);
             armAsm->Mov(EAX, inpage_ptr);
 //			xMOV(arg2regd, inpage_sz / 4);
-            armAsm->Mov(ECX, inpage_sz / 4);
+            armAsm->Mov(ECX, inpage_sz >> 2);
 			//xMOV( eax, startpc );		// uncomment this to access startpc (as eax) in dyna_block_discard
 
+            u32 lpc_addr;
 			u32 lpc = inpage_ptr;
 			u32 stg = inpage_sz;
+
+            armAsm->Ldr(RSCRATCHADDR, PTR_CPU(vtlbdata.pmap));
 
 			while (stg > 0)
 			{
 //				xCMP(ptr32[PSM(lpc)], *(u32*)PSM(lpc));
-                armAsm->Cmp(armLoadPtr(PSM(lpc)), *(u32*)PSM(lpc));
+
+                lpc_addr = lpc & 0x1fffffff;
+                armAsm->Add(RXVIXLSCRATCH, RSCRATCHADDR, lpc_addr);
+                armAsm->Ldr(EDX, a64::MemOperand(RXVIXLSCRATCH));
+                armAsm->Cmp(EDX, *(u32*)vtlb_GetPhyPtr(lpc_addr));
+
 //				xJNE(DispatchBlockDiscard);
                 armEmitCondBranch(a64::Condition::ne, DispatchBlockDiscard);
 
@@ -2207,15 +2221,19 @@ static void memory_protect_recompiled_code(u32 startpc, u32 size)
 //				xJC(DispatchPageReset);
                 armEmitCondBranch(a64::Condition::cs, DispatchPageReset);
 
+#ifdef PCSX2_DEVBUILD
 				// note: clearcnt is measured per-page, not per-block!
 				eeRecPerfLog.Write("Manual block @ %08X : size =%3d  page/offs = 0x%05X/0x%03X  inpgsz = %d  clearcnt = %d",
 					startpc, size, inpage_ptr >> 12, inpage_ptr & 0xfff, inpage_sz, manual_counter[inpage_ptr >> 12]);
+#endif
 			}
+#ifdef PCSX2_DEVBUILD
 			else
 			{
 				eeRecPerfLog.Write("Uncounted Manual block @ 0x%08X : size =%3d page/offs = 0x%05X/0x%03X  inpgsz = %d",
 					startpc, size, inpage_ptr >> 12, inpage_ptr & 0xfff, inpage_sz);
 			}
+#endif
 			break;
 	}
 }
@@ -2462,7 +2480,7 @@ static void recRecompile(const u32 startpc)
 	const int n = std::max<int>(n1, n2);
 	if (n != 0)
 	{
-		s_nEndBlock = i + n * 4;
+		s_nEndBlock = i + (n << 2); // n * 4
 		goto StartRecomp;
 	}
 
@@ -2484,7 +2502,9 @@ static void recRecompile(const u32 startpc)
 				willbranch3 = 1;
 				s_nEndBlock = i;
 
+#ifdef PCSX2_DEVBUILD
 				eeRecPerfLog.Write("Pagesplit @ %08X : size=%d insts", startpc, (i - startpc) / 4);
+#endif
 				break;
 			}
 
@@ -2541,7 +2561,7 @@ static void recRecompile(const u32 startpc)
 				if (_Rt_ < 4 || (_Rt_ >= 16 && _Rt_ < 20))
 				{
 					// branches
-					s_branchTo = _Imm_ * 4 + i + 4;
+					s_branchTo = (_Imm_ << 2) + i + 4; // _Imm_ * 4
 					if (s_branchTo > startpc && s_branchTo < i)
 						s_nEndBlock = s_branchTo;
 					else
@@ -2566,7 +2586,7 @@ static void recRecompile(const u32 startpc)
 			case 21:
 			case 22:
 			case 23:
-				s_branchTo = _Imm_ * 4 + i + 4;
+				s_branchTo = (_Imm_ << 2) + i + 4; // _Imm_ * 4
 				if (s_branchTo > startpc && s_branchTo < i)
 					s_nEndBlock = s_branchTo;
 				else
@@ -2592,7 +2612,7 @@ static void recRecompile(const u32 startpc)
 				{
 					// BC1F, BC1T, BC1FL, BC1TL
 					// BC2F, BC2T, BC2FL, BC2TL
-					s_branchTo = _Imm_ * 4 + i + 4;
+					s_branchTo = (_Imm_ << 2) + i + 4; // _Imm_ * 4
 					if (s_branchTo > startpc && s_branchTo < i)
 						s_nEndBlock = s_branchTo;
 					else
@@ -2698,10 +2718,11 @@ StartRecomp:
 	// rec info //
 	bool has_cop2_instructions = false;
 	{
-		if (s_nInstCacheSize < (s_nEndBlock - startpc) / 4 + 1)
+        u32 block_offset = (s_nEndBlock - startpc) >> 2; // (s_nEndBlock - startpc) / 4
+		if (s_nInstCacheSize < block_offset + 1)
 		{
-			const u32 required_size = (s_nEndBlock - startpc) / 4 + 10;
-			const u32 new_size = std::max(required_size, s_nInstCacheSize * 2);
+			const u32 required_size = block_offset + 10;
+			const u32 new_size = std::max(required_size, s_nInstCacheSize << 1); // s_nInstCacheSize * 2
 			
 			EEINST* new_cache = (EEINST*)malloc(sizeof(EEINST) * new_size);
 			if (!new_cache)
@@ -2717,7 +2738,7 @@ StartRecomp:
 			s_nInstCacheSize = new_size;
 		}
 
-		EEINST* pcur = s_pInstCache + (s_nEndBlock - startpc) / 4;
+		EEINST* pcur = s_pInstCache + block_offset;
 		_recClearInst(pcur);
 		pcur->info = 0;
 
@@ -2811,29 +2832,26 @@ StartRecomp:
 	if (HWADDR(pc) <= Ps2MemSize::ExposedRam)
 	{
 		BASEBLOCKEX* oldBlock;
-		int i;
-
-		i = recBlocks.LastIndex(HWADDR(pc) - 4);
-		while ((oldBlock = recBlocks[i--]))
+		int ii = recBlocks.LastIndex(HWADDR(pc) - 4);
+		while ((oldBlock = recBlocks[ii--]))
 		{
 			if (oldBlock == s_pCurBlockEx)
 				continue;
 			if (oldBlock->startpc >= HWADDR(pc))
 				continue;
-			if ((oldBlock->startpc + oldBlock->size * 4) <= HWADDR(startpc))
+			if ((oldBlock->startpc + (oldBlock->size << 2)) <= HWADDR(startpc)) // oldBlock->size * 4
 				break;
 
-			if (memcmp(&recRAMCopy[oldBlock->startpc / 4], PSM(oldBlock->startpc),
-					oldBlock->size * 4))
+			if (memcmp(&recRAMCopy[oldBlock->startpc >> 2], PSM(oldBlock->startpc), oldBlock->size << 2)) // oldBlock->startpc / 4, oldBlock->size * 4
 			{
-				recClear(startpc, (pc - startpc) / 4);
+				recClear(startpc, (pc - startpc) >> 2); // (pc - startpc) / 4
 				s_pCurBlockEx = recBlocks.Get(HWADDR(startpc));
 				pxAssert(s_pCurBlockEx->startpc == HWADDR(startpc));
 				break;
 			}
 		}
 
-		memcpy(&recRAMCopy[HWADDR(startpc) / 4], PSM(startpc), pc - startpc);
+		memcpy(&recRAMCopy[HWADDR(startpc) >> 2], PSM(startpc), pc - startpc); // HWADDR(startpc) / 4
 	}
 
 	s_pCurBlock->SetFnptr((uptr)recPtr);

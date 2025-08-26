@@ -58,6 +58,7 @@ namespace a64 = vixl::aarch64;
 // fastmem
 #define RFASTMEMBASE a64::x25
 
+// iopMem->Main
 #define RSTATE_x26 a64::x26
 
 // CPU(iR5900), PSX(iR3000A), FPU(iFPU, iFPUd)
@@ -69,7 +70,7 @@ namespace a64 = vixl::aarch64;
 #define RSTATE_MVU a64::x28
 #define PTR_MVU(field) a64::MemOperand(RSTATE_MVU, offsetof(vuRegistersPack, field))
 
-// iopMem->Main
+// recLUT, psxRecLUT
 #define RSTATE_x29 a64::x29
 
 // eeHw[Ps2MemSize::Hardware]

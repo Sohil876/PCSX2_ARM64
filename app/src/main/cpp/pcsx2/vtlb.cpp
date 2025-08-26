@@ -854,10 +854,11 @@ void vtlb_Mirror(u32 new_region, u32 start, u32 size)
 
 __fi void* vtlb_GetPhyPtr(u32 paddr)
 {
-	if (paddr >= VTLB_PMAP_SZ || vtlbdata.pmap[paddr >> VTLB_PAGE_BITS].isHandler())
-		return NULL;
-	else
-		return reinterpret_cast<void*>(vtlbdata.pmap[paddr >> VTLB_PAGE_BITS].assumePtr() + (paddr & VTLB_PAGE_MASK));
+    auto pmap_value = vtlbdata.pmap[paddr >> VTLB_PAGE_BITS];
+    if (paddr >= VTLB_PMAP_SZ || pmap_value.isHandler())
+        return NULL;
+    else
+        return reinterpret_cast<void*>(pmap_value.assumePtr() + (paddr & VTLB_PAGE_MASK));
 }
 
 __fi u32 vtlb_V2P(u32 vaddr)
@@ -1523,10 +1524,12 @@ void mmap_MarkCountedRamPage(u32 paddr)
 	if (m_PageProtectInfo[rampage].Mode == ProtMode_Write)
 		return; // skip town if we're already protected.
 
+#ifdef PCSX2_DEVBUILD
 	eeRecPerfLog.Write((m_PageProtectInfo[rampage].Mode == ProtMode_Manual) ?
 						   "Re-protecting page @ 0x%05x" :
 						   "Protected page @ 0x%05x",
 		paddr >> __pageshift);
+#endif
 
 	m_PageProtectInfo[rampage].Mode = ProtMode_Write;
 	HostSys::MemProtect(&eeMem->Main[rampage << __pageshift], __pagesize, PageAccess_ReadOnly());

@@ -1,5 +1,6 @@
 package kr.co.iefriends.pcsx2;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +16,7 @@ import android.widget.FrameLayout;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -59,161 +61,83 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // Buttons
+    void configureOnClickListener(@IdRes int id, View.OnClickListener onClickListener) {
+        View view = findViewById(id);
+        if (view != null) {
+            view.setOnClickListener(onClickListener);
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    void configureOnTouchListener(@IdRes int id, int... keyCodes) {
+        View view = findViewById(id);
+        if (view != null) {
+            view.setOnTouchListener((v, event) -> {
+                for (int keyCode : keyCodes) {
+                    sendKeyAction(v, event.getAction(), keyCode);
+                }
+                return true;
+            });
+        }
+    }
+
     private void makeButtonTouch() {
         // Game file
-        MaterialButton btn_file = findViewById(R.id.btn_file);
-        if(btn_file != null) {
-            btn_file.setOnClickListener(v -> {
-                // Internal storage
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
-                intent.setType("*/*");
-                startActivityResultLocalFilePlay.launch(intent);
-            });
-        }
+        configureOnClickListener(R.id.btn_file, v -> {
+            // Internal storage
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
+            intent.setType("*/*");
+            startActivityResultLocalFilePlay.launch(intent);
+        });
 
         // Game save
-        MaterialButton btn_save = findViewById(R.id.btn_save);
-        if(btn_save != null) {
-            btn_save.setOnClickListener(v -> {
-                if(NativeApp.saveStateToSlot(1)) {
-                    // Success
-                } else {
-                    // Failed
-                }
-                NativeApp.resume();
-            });
-        }
+        configureOnClickListener(R.id.btn_save, v -> {
+            if (NativeApp.saveStateToSlot(1)) {
+                // Success
+            } else {
+                // Failed
+            }
+            NativeApp.resume();
+        });
 
         // Game load
-       MaterialButton btn_load = findViewById(R.id.btn_load);
-        if(btn_load != null) {
-            btn_load.setOnClickListener(v -> {
-                if(NativeApp.loadStateFromSlot(1)) {
-                    // Success
-                } else {
-                    // Failed
-                }
-                NativeApp.resume();
-            });
-        }
+        configureOnClickListener(R.id.btn_load, v -> {
+            if (NativeApp.loadStateFromSlot(1)) {
+                // Success
+            } else {
+                // Failed
+            }
+            NativeApp.resume();
+        });
 
         //////
         // RENDERER
-
-        MaterialButton btn_ogl = findViewById(R.id.btn_ogl);
-        if(btn_ogl != null) {
-            btn_ogl.setOnClickListener(v -> {
-                NativeApp.renderGpu(12);
-            });
-        }
-        MaterialButton btn_vulkan = findViewById(R.id.btn_vulkan);
-        if(btn_vulkan != null) {
-            btn_vulkan.setOnClickListener(v -> {
-                NativeApp.renderGpu(14);
-            });
-        }
-        MaterialButton btn_sw = findViewById(R.id.btn_sw);
-        if(btn_sw != null) {
-            btn_sw.setOnClickListener(v -> {
-                NativeApp.renderGpu(13);
-            });
-        }
+        configureOnClickListener(R.id.btn_ogl, v -> NativeApp.renderGpu(12));
+        configureOnClickListener(R.id.btn_vulkan, v -> NativeApp.renderGpu(14));
+        configureOnClickListener(R.id.btn_sw, v -> NativeApp.renderGpu(13));
 
         //////
         // PAD
+        configureOnTouchListener(R.id.btn_pad_select, KeyEvent.KEYCODE_BUTTON_SELECT);
 
-        MaterialButton btn_pad_select = findViewById(R.id.btn_pad_select);
-        if(btn_pad_select != null) {
-            btn_pad_select.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_SELECT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_start = findViewById(R.id.btn_pad_start);
-        if(btn_pad_start != null) {
-            btn_pad_start.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_START);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_start, KeyEvent.KEYCODE_BUTTON_START);
 
-         MaterialButton btn_pad_a = findViewById(R.id.btn_pad_a);
-        if(btn_pad_a != null) {
-            btn_pad_a.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_A);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_b = findViewById(R.id.btn_pad_b);
-        if(btn_pad_b != null) {
-            btn_pad_b.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_B);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_x = findViewById(R.id.btn_pad_x);
-        if(btn_pad_x != null) {
-            btn_pad_x.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_X);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_y = findViewById(R.id.btn_pad_y);
-        if(btn_pad_y != null) {
-            btn_pad_y.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_Y);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_a, KeyEvent.KEYCODE_BUTTON_A);
+        configureOnTouchListener(R.id.btn_pad_b, KeyEvent.KEYCODE_BUTTON_B);
+        configureOnTouchListener(R.id.btn_pad_x, KeyEvent.KEYCODE_BUTTON_X);
+        configureOnTouchListener(R.id.btn_pad_y, KeyEvent.KEYCODE_BUTTON_Y);
 
         ////
+        configureOnTouchListener(R.id.btn_pad_l1, KeyEvent.KEYCODE_BUTTON_L1);
+        configureOnTouchListener(R.id.btn_pad_r1, KeyEvent.KEYCODE_BUTTON_R1);
 
-        MaterialButton btn_pad_l1 = findViewById(R.id.btn_pad_l1);
-        if(btn_pad_l1 != null) {
-            btn_pad_l1.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_L1);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_r1 = findViewById(R.id.btn_pad_r1);
-        if(btn_pad_r1 != null) {
-            btn_pad_r1.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_R1);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_l2, KeyEvent.KEYCODE_BUTTON_L2);
+        configureOnTouchListener(R.id.btn_pad_r2, KeyEvent.KEYCODE_BUTTON_R2);
 
-        MaterialButton btn_pad_l2 = findViewById(R.id.btn_pad_l2);
-        if(btn_pad_l2 != null) {
-            btn_pad_l2.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_L2);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_r2 = findViewById(R.id.btn_pad_r2);
-        if(btn_pad_r2 != null) {
-            btn_pad_r2.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_R2);
-                return true;
-            });
-        }
-
-        MaterialButton btn_pad_l3 = findViewById(R.id.btn_pad_l3);
-        if(btn_pad_l3 != null) {
-            btn_pad_l3.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_THUMBL);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_r3 = findViewById(R.id.btn_pad_r3);
-        if(btn_pad_r3 != null) {
-            btn_pad_r3.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_BUTTON_THUMBR);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_l3, KeyEvent.KEYCODE_BUTTON_THUMBL);
+        configureOnTouchListener(R.id.btn_pad_r3, KeyEvent.KEYCODE_BUTTON_THUMBR);
 
         ////
 
@@ -227,112 +151,36 @@ public class MainActivity extends AppCompatActivity {
         final int PAD_R_DOWN = 122;
         final int PAD_R_LEFT = 123;
 
-        MaterialButton btn_pad_joy_lt = findViewById(R.id.btn_pad_joy_lt);
-        if(btn_pad_joy_lt != null) {
-            btn_pad_joy_lt.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_UP);
-                sendKeyAction(v, event.getAction(), PAD_L_LEFT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_t = findViewById(R.id.btn_pad_joy_t);
-        if(btn_pad_joy_t != null) {
-            btn_pad_joy_t.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_UP);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_rt = findViewById(R.id.btn_pad_joy_rt);
-        if(btn_pad_joy_rt != null) {
-            btn_pad_joy_rt.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_UP);
-                sendKeyAction(v, event.getAction(), PAD_L_RIGHT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_l = findViewById(R.id.btn_pad_joy_l);
-        if(btn_pad_joy_l != null) {
-            btn_pad_joy_l.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_LEFT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_r = findViewById(R.id.btn_pad_joy_r);
-        if(btn_pad_joy_r != null) {
-            btn_pad_joy_r.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_RIGHT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_lb = findViewById(R.id.btn_pad_joy_lb);
-        if(btn_pad_joy_lb != null) {
-            btn_pad_joy_lb.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_LEFT);
-                sendKeyAction(v, event.getAction(), PAD_L_DOWN);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_b = findViewById(R.id.btn_pad_joy_b);
-        if(btn_pad_joy_b != null) {
-            btn_pad_joy_b.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_DOWN);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_joy_rb = findViewById(R.id.btn_pad_joy_rb);
-        if(btn_pad_joy_rb != null) {
-            btn_pad_joy_rb.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), PAD_L_RIGHT);
-                sendKeyAction(v, event.getAction(), PAD_L_DOWN);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_joy_lt, PAD_L_UP, PAD_L_LEFT);
+        configureOnTouchListener(R.id.btn_pad_joy_t, PAD_L_UP);
+        configureOnTouchListener(R.id.btn_pad_joy_rt, PAD_L_UP, PAD_L_RIGHT);
+        configureOnTouchListener(R.id.btn_pad_joy_r, PAD_L_RIGHT);
+        configureOnTouchListener(R.id.btn_pad_joy_rb, PAD_L_DOWN, PAD_L_RIGHT);
+        configureOnTouchListener(R.id.btn_pad_joy_b, PAD_L_DOWN);
+        configureOnTouchListener(R.id.btn_pad_joy_lb, PAD_L_DOWN, PAD_L_LEFT);
+        configureOnTouchListener(R.id.btn_pad_joy_l, PAD_L_LEFT);
 
         ////
-
-        MaterialButton btn_pad_dir_top = findViewById(R.id.btn_pad_dir_top);
-        if(btn_pad_dir_top != null) {
-            btn_pad_dir_top.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_DPAD_UP);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_dir_bottom = findViewById(R.id.btn_pad_dir_bottom);
-        if(btn_pad_dir_bottom != null) {
-            btn_pad_dir_bottom.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_DPAD_DOWN);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_dir_left = findViewById(R.id.btn_pad_dir_left);
-        if(btn_pad_dir_left != null) {
-            btn_pad_dir_left.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_DPAD_LEFT);
-                return true;
-            });
-        }
-        MaterialButton btn_pad_dir_right = findViewById(R.id.btn_pad_dir_right);
-        if(btn_pad_dir_right != null) {
-            btn_pad_dir_right.setOnTouchListener((v, event) -> {
-                sendKeyAction(v, event.getAction(), KeyEvent.KEYCODE_DPAD_RIGHT);
-                return true;
-            });
-        }
+        configureOnTouchListener(R.id.btn_pad_dir_top, KeyEvent.KEYCODE_DPAD_UP);
+        configureOnTouchListener(R.id.btn_pad_dir_bottom, KeyEvent.KEYCODE_DPAD_DOWN);
+        configureOnTouchListener(R.id.btn_pad_dir_left, KeyEvent.KEYCODE_DPAD_LEFT);
+        configureOnTouchListener(R.id.btn_pad_dir_right, KeyEvent.KEYCODE_DPAD_RIGHT);
     }
 
     public final ActivityResultLauncher<Intent> startActivityResultLocalFilePlay = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if(result.getResultCode() == Activity.RESULT_OK) {
+                if (result.getResultCode() == Activity.RESULT_OK) {
                     try {
                         Intent _intent = result.getData();
-                        if(_intent != null) {
+                        if (_intent != null) {
                             m_szGamefile = _intent.getDataString();
-                            if(!TextUtils.isEmpty(m_szGamefile)) {
+                            if (!TextUtils.isEmpty(m_szGamefile)) {
                                 restartEmuThread();
                             }
                         }
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                 }
             });
 
@@ -375,15 +223,15 @@ public class MainActivity extends AppCompatActivity {
             try {
                 mEmulationThread.join();
                 mEmulationThread = null;
+            } catch (InterruptedException ignored) {
             }
-            catch (InterruptedException ignored) {}
         }
 
         int appPid = android.os.Process.myPid();
         android.os.Process.killProcess(appPid);
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////
 
     public void Initialize() {
         NativeApp.initializeOnce(getApplicationContext());
@@ -399,19 +247,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void setSurfaceView(Object p_value) {
         FrameLayout fl_board = findViewById(R.id.fl_board);
-        if(fl_board != null) {
-            if(fl_board.getChildCount() > 0) {
+        if (fl_board != null) {
+            if (fl_board.getChildCount() > 0) {
                 fl_board.removeAllViews();
             }
             ////
-            if(p_value instanceof SDLSurface) {
-                fl_board.addView((SDLSurface)p_value);
+            if (p_value instanceof SDLSurface) {
+                fl_board.addView((SDLSurface) p_value);
             }
         }
     }
 
     public void startEmuThread() {
-        if(!isThread()) {
+        if (!isThread()) {
             mEmulationThread = new Thread(() -> NativeApp.runVMThread(m_szGamefile));
             mEmulationThread.start();
         }
@@ -423,14 +271,14 @@ public class MainActivity extends AppCompatActivity {
             try {
                 mEmulationThread.join();
                 mEmulationThread = null;
+            } catch (InterruptedException ignored) {
             }
-            catch (InterruptedException ignored) {}
         }
         ////
         startEmuThread();
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////
 
     @Override
     public boolean onGenericMotionEvent(MotionEvent event) {
@@ -448,8 +296,7 @@ public class MainActivity extends AppCompatActivity {
                 SDLControllerManager.onNativePadDown(p_event.getDeviceId(), p_keyCode);
                 return true;
             }
-        }
-        else {
+        } else {
             if (p_keyCode == KeyEvent.KEYCODE_BACK) {
                 finish();
                 return true;
@@ -470,22 +317,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public static void sendKeyAction(View p_view, int p_action, int p_keycode) {
-        if(p_action == MotionEvent.ACTION_DOWN) {
+        if (p_action == MotionEvent.ACTION_DOWN) {
             p_view.setPressed(true);
             int pad_force = 0;
-            if(p_keycode >= 110) {
+            if (p_keycode >= 110) {
                 float _abs = 90; // Joystic test value
                 _abs = Math.min(_abs, 100);
                 pad_force = (int) (_abs * 32766.0f / 100);
             }
             NativeApp.setPadButton(p_keycode, pad_force, true);
-        } else if(p_action == MotionEvent.ACTION_UP || p_action == MotionEvent.ACTION_CANCEL) {
+        } else if (p_action == MotionEvent.ACTION_UP || p_action == MotionEvent.ACTION_CANCEL) {
             p_view.setPressed(false);
             NativeApp.setPadButton(p_keycode, 0, false);
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////
+    /// ///////////////////////////////////////////////////////////////////////////////////////////
 
     public static void copyAssetAll(Context p_context, String srcPath) {
         AssetManager assetMgr = p_context.getAssets();
@@ -493,7 +340,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             String destPath = p_context.getExternalFilesDir(null) + File.separator + srcPath;
             assets = assetMgr.list(srcPath);
-            if(assets != null) {
+            if (assets != null) {
                 if (assets.length == 0) {
                     copyFile(p_context, srcPath, destPath);
                 } else {
@@ -505,8 +352,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
+        } catch (IOException ignored) {
         }
-        catch (IOException ignored) {}
     }
 
     public static void copyFile(Context p_context, String srcFile, String destFile) {
@@ -517,11 +364,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             is = assetMgr.open(srcFile);
             boolean _exists = new File(destFile).exists();
-            if(srcFile.contains("shaders")) {
+            if (srcFile.contains("shaders")) {
                 _exists = false;
             }
-            if(!_exists)
-            {
+            if (!_exists) {
                 os = new FileOutputStream(destFile);
 
                 byte[] buffer = new byte[1024];
@@ -533,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
                 os.flush();
                 os.close();
             }
+        } catch (IOException ignored) {
         }
-        catch (IOException ignored) {}
     }
 }

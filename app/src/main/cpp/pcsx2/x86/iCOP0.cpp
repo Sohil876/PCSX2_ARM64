@@ -42,15 +42,13 @@ static void _setupBranchTest()
 	// everything except the lower 10 bits away.
 
 //	xMOV(eax, ptr[(&psHu32(DMAC_PCR))]);
-    armAsm->Ldr(RWVIXLSCRATCH, a64::MemOperand(RSTATE_x26, psHu(DMAC_PCR)));
-    armAsm->Uxtw(EAX, RWVIXLSCRATCH);
+    armAsm->Mov(EAX, psHu32(DMAC_PCR));
 //	xMOV(ecx, 0x3ff); // ECX is our 10-bit mask var
     armAsm->Mov(ECX, 0x3ff);
 //	xNOT(eax);
     armAsm->Mvn(EAX, EAX);
 //	xOR(eax, ptr[(&psHu32(DMAC_STAT))]);
-    armAsm->Ldr(RWVIXLSCRATCH, a64::MemOperand(RSTATE_x26, psHu(DMAC_STAT)));
-    armAsm->Orr(EAX, EAX, a64::Operand(RWVIXLSCRATCH, a64::Extend::UXTW));
+    armAsm->Orr(EAX, EAX, armLoadPtr(&psHu32(DMAC_STAT)));
 //	xAND(eax, ecx);
     armAsm->And(EAX, EAX, ECX);
 //	xCMP(eax, ecx);

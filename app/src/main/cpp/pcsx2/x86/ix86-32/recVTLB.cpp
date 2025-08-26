@@ -600,7 +600,7 @@ int vtlb_DynGenReadNonQuad_Const(u32 bits, bool sign, bool xmm, u32 addr_const, 
         // Shortcut for the INTC_STAT register, which many games like to spin on heavily.
         if ((bits == 32) && !EmuConfig.Speedhacks.IntcStat && (paddr == INTC_STAT))
         {
-            armAsm->Ldr(RWVIXLSCRATCH, a64::MemOperand(RSTATE_x26, psHu(INTC_STAT)));
+            auto mop = armMemOperandPtr(&psHu32(INTC_STAT));
 
 //			x86_dest_reg = dest_reg_alloc ? dest_reg_alloc() : (_freeX86reg(eax), eax.GetId());
             x86_dest_reg = dest_reg_alloc ? dest_reg_alloc() : (_freeX86reg(EAX), EAX.GetCode());
@@ -609,18 +609,17 @@ int vtlb_DynGenReadNonQuad_Const(u32 bits, bool sign, bool xmm, u32 addr_const, 
                 auto regX = a64::XRegister(x86_dest_reg);
                 if (sign) {
 //                    xMOVSX(xRegister64(x86_dest_reg), ptr32[&psHu32(INTC_STAT)]);
-                    armAsm->Sxtw(regX, RWVIXLSCRATCH);
+                    armAsm->Ldr(regX, mop);
                 }
                 else {
 //                    xMOV(xRegister32(x86_dest_reg), ptr32[&psHu32(INTC_STAT)]);
-                    armAsm->Uxtw(regX.W(), RWVIXLSCRATCH);
+                    armAsm->Ldr(regX.W(), mop);
                 }
             }
             else
             {
 //				xMOVDZX(xRegisterSSE(x86_dest_reg), ptr32[&psHu32(INTC_STAT)]);
-                armAsm->Uxtw(RWVIXLSCRATCH, RWVIXLSCRATCH);
-                armAsm->Fmov(a64::QRegister(x86_dest_reg).S(), RWVIXLSCRATCH);
+                armAsm->Ldr(a64::QRegister(x86_dest_reg).S(), mop);
             }
         }
         else

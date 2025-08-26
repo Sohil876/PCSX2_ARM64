@@ -29,6 +29,9 @@ std::unique_ptr<VKShaderCache> g_vulkan_shader_cache;
 
 static u32 s_next_bad_shader_id = 0;
 
+static shaderc_compiler_t g_s_compiler = nullptr;
+static shaderc_compile_options_t g_options = nullptr;
+
 namespace
 {
 #pragma pack(push, 4)
@@ -228,54 +231,69 @@ std::optional<VKShaderCache::SPIRVCodeVector> VKShaderCache::CompileShaderToSPV(
 {
 	std::optional<VKShaderCache::SPIRVCodeVector> ret;
 #ifdef ANDROID
-    shaderc_compiler_t s_compiler = shaderc_compiler_initialize();
-    if(s_compiler == nullptr) {
+    if(g_s_compiler == nullptr)
+    {
+        g_s_compiler = shaderc_compiler_initialize();
+    }
+    if(g_s_compiler == nullptr) {
         return ret;
     }
 
-    shaderc_compile_options_t options = shaderc_compile_options_initialize();
-    pxAssertRel(options, "shaderc_compile_options_initialize() failed");
+    //// == OPTIONS ==
+    if(g_options == nullptr)
+    {
+        g_options = shaderc_compile_options_initialize();
 
-    shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
-    shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan, 0);
+        pxAssertRel(g_options, "shaderc_compile_options_initialize() failed");
+
+        shaderc_compile_options_set_source_language(g_options, shaderc_source_language_glsl);
+        shaderc_compile_options_set_target_env(g_options, shaderc_target_env_vulkan, 0);
 #ifdef SHADERC_PCSX2_CUSTOM
-    shaderc_compile_options_set_generate_debug_info(options, debug,
-		debug && GSDeviceVK::GetInstance()->GetOptionalExtensions().vk_khr_shader_non_semantic_info);
+        shaderc_compile_options_set_generate_debug_info(options, debug,
+            debug && GSDeviceVK::GetInstance()->GetOptionalExtensions().vk_khr_shader_non_semantic_info);
 #else
-    if (debug)
-        shaderc_compile_options_set_generate_debug_info(options);
+        if (debug)
+            shaderc_compile_options_set_generate_debug_info(g_options);
 #endif
-    shaderc_compile_options_set_optimization_level(
-            options, debug ? shaderc_optimization_level_zero : shaderc_optimization_level_performance);
-
-    const shaderc_compilation_result_t result = shaderc_compile_into_spv(
-            s_compiler, source.data(), source.length(), static_cast<shaderc_shader_kind>(stage), "source",
-            "main", options);
-
-    shaderc_compilation_status status = shaderc_compilation_status_null_result_object;
-    if (!result || (status = shaderc_result_get_compilation_status(result)) != shaderc_compilation_status_success)
-    {
-        const std::string_view errors(result ? shaderc_result_get_error_message(result)
-                                             : "null result object");
-        ERROR_LOG("Failed to compile shader to SPIR-V: {}\n{}", compilation_status_to_string(status), errors);
-        DumpBadShader(source, errors);
+        shaderc_compile_options_set_optimization_level(
+                g_options,
+                debug ? shaderc_optimization_level_zero : shaderc_optimization_level_performance);
     }
-    else
-    {
-        const size_t num_warnings = shaderc_result_get_num_warnings(result);
-        if (num_warnings > 0)
-            WARNING_LOG("Shader compiled with warnings:\n{}", shaderc_result_get_error_message(result));
-
-        const size_t spirv_size = shaderc_result_get_length(result);
-        const char* bytes = shaderc_result_get_bytes(result);
-        pxAssert(spirv_size > 0 && ((spirv_size % sizeof(u32)) == 0));
-        ret = VKShaderCache::SPIRVCodeVector(reinterpret_cast<const u32*>(bytes),
-                                             reinterpret_cast<const u32*>(bytes + spirv_size));
+    if(g_options == nullptr) {
+        return ret;
     }
 
-    shaderc_result_release(result);
-    shaderc_compiler_release(s_compiler);
-    shaderc_compile_options_release(options);
+    //// == RESULT ==
+    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+            g_s_compiler, source.data(), source.length(), static_cast<shaderc_shader_kind>(stage), "source",
+            "main", g_options);
+    if(result != nullptr)
+    {
+        shaderc_compilation_status status = shaderc_compilation_status_null_result_object;
+        if (!result || (status = shaderc_result_get_compilation_status(result)) !=
+                       shaderc_compilation_status_success) {
+            const std::string_view errors(result ? shaderc_result_get_error_message(result)
+                                                 : "null result object");
+            ERROR_LOG("Failed to compile shader to SPIR-V: {}\n{}",
+                      compilation_status_to_string(status), errors);
+            DumpBadShader(source, errors);
+        } else {
+            const size_t num_warnings = shaderc_result_get_num_warnings(result);
+            if (num_warnings > 0)
+                WARNING_LOG("Shader compiled with warnings:\n{}",
+                            shaderc_result_get_error_message(result));
+
+            const size_t spirv_size = shaderc_result_get_length(result);
+            const char *bytes = shaderc_result_get_bytes(result);
+            pxAssert(spirv_size > 0 && ((spirv_size % sizeof(u32)) == 0));
+            ret = VKShaderCache::SPIRVCodeVector(reinterpret_cast<const u32 *>(bytes),
+                                                 reinterpret_cast<const u32 *>(bytes + spirv_size));
+        }
+        ////
+        shaderc_result_release(result);
+        result = nullptr;
+    }
+
 #else
 	if (!dyn_shaderc::Open())
 		return ret;
@@ -333,6 +351,15 @@ VKShaderCache::~VKShaderCache()
 	CloseShaderCache();
 	FlushPipelineCache();
 	ClosePipelineCache();
+    ////
+    if(g_options != nullptr) {
+        shaderc_compile_options_release(g_options);
+        g_options = nullptr;
+    }
+    if(g_s_compiler != nullptr) {
+        shaderc_compiler_release(g_s_compiler);
+        g_s_compiler = nullptr;
+    }
 }
 
 bool VKShaderCache::CacheIndexKey::operator==(const CacheIndexKey& key) const
